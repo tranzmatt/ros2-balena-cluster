@@ -1,0 +1,29 @@
+# File: docker-compose.yml
+version: '3.8'
+
+services:
+  # The "Brain" of the network
+  discovery-server:
+    build: .
+    container_name: ros-discovery-server
+    # Use host networking so we don't have to map ports manually 
+    # and so the server sees the real network interface.
+    network_mode: host
+    restart: unless-stopped
+    # 1. Start the server
+    # 2. Server ID 0 is the default "Backup 0" or Primary
+    # 3. Port 11811 is the default Fast DDS port
+    command: fastdds discovery --server-id 0 --port 11811
+
+  # Optional: A local monitor to verify the server sees traffic
+  # specific to this machine
+  monitor:
+    build: .
+    container_name: ros-monitor
+    network_mode: host
+    # This environment variable tells this node to talk to the server 
+    # defined above (localhost relative to this machine)
+    environment:
+      - ROS_DISCOVERY_SERVER=127.0.0.1:11811
+    # Keep the container alive so you can exec into it later
+    command: sleep infinity

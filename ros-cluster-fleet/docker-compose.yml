@@ -1,0 +1,15 @@
+# File: docker-compose.yml
+version: '2.1'
+
+services:
+  ros-client:
+    build: .
+    privileged: true
+    network_mode: host
+    restart: always
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      # This variable will be overwritten by the Balena Dashboard
+      - DISCOVERY_SERVER_IP=127.0.0.1 
+    # Optional: Start a listener by default to prove connection immediately
+    command: ros2 run demo_nodes_cpp listener --ros-args --remap __node:=balena_listener
