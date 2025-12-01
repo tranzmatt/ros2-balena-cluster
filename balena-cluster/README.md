@@ -19,7 +19,6 @@ In the Balena Dashboard, set these fleet-wide variables:
 | `ROS_DISCOVERY_SERVER` | `172.32.1.250:11811` |
 | `ROS_DOMAIN_ID` | `0` |
 | `RMW_IMPLEMENTATION` | `rmw_fastrtps_cpp` |
-| `FASTRTPS_DEFAULT_PROFILES_FILE` | `/opt/ros/fastdds_config.xml` |
 | `ROS_LOCALHOST_ONLY` | `0` |
 | `ROS_SUPER_CLIENT` | `false` |
 
@@ -30,83 +29,94 @@ cd balena-cluster
 balena push ros2-balena-rpi5
 ```
 
-### 3. Add Devices
+## Verifying the Cluster Works
 
-Flash BalenaOS to your Pi 5 SD cards and add them to the fleet.
+The containers start with `sleep infinity` so you can exec in and run commands.
 
-## Per-Device Configuration
+### Method 1: From Desktop Monitor (Recommended)
 
-### Custom Node Names
-
-Each device automatically uses its Balena device name as the ROS node name. You can override this per-device:
+On your desktop where the discovery server runs:
 
 ```bash
-balena env add NODE_NAME my_custom_name --device <uuid>
-```
+# Exec into the monitor container
+docker exec -it ros-monitor bash
 
-### Super Client Mode
-
-For diagnostic nodes that need full cluster visibility:
-
-```bash
-balena env add ROS_SUPER_CLIENT true --device <uuid>
-```
-
-## Testing
-
-SSH into a device:
-
-```bash
-balena ssh <device-uuid> ros2-node
-```
-
-Run ROS2 commands:
-
-```bash
-# List all nodes in cluster
+# List all nodes in the cluster (should show Pi nodes)
 ros2 node list
 
-# List topics
+# List all topics
 ros2 topic list
+```
 
-# Run demo publisher
+### Method 2: Cross-Node Communication Test
+
+**On Pi #1** (via Balena SSH or web terminal):
+```bash
+balena ssh <device-uuid> ros-node
+
+# Start a talker
 ros2 run demo_nodes_cpp talker
+```
 
-# On another device, run subscriber
+**On Desktop Monitor:**
+```bash
+docker exec -it ros-monitor bash
+
+# Listen to the Pi's talker
+ros2 topic echo /chatter
+```
+
+You should see messages from the Pi appearing on your desktop!
+
+**On Pi #2** (to verify Pi-to-Pi communication):
+```bash
+balena ssh <device-uuid> ros-node
+
+# Listen to Pi #1's talker
 ros2 run demo_nodes_cpp listener
 ```
 
-## Adding Custom Packages
+### Method 3: Quick Cluster Health Check
 
-### Method 1: Modify Dockerfile
+From the desktop monitor, run this to see all discovered participants:
 
-Add to `Dockerfile.ros2`:
+```bash
+docker exec -it ros-monitor bash
 
-```dockerfile
-# Clone your packages
-RUN cd /ros2_ws/src && \
-    git clone https://github.com/your/package.git
-
-# Build workspace
-RUN cd /ros2_ws && \
-    source /opt/ros/jazzy/setup.bash && \
-    colcon build --symlink-install
+# See what the discovery server knows about
+ros2 daemon stop
+ros2 daemon start
+ros2 node list
 ```
 
-### Method 2: Add Local Packages
+## Running Your Own Nodes
 
-1. Create a `packages/` directory
-2. Add your ROS2 packages
-3. Modify Dockerfile to copy and build them
+Once verified, you can either:
 
-## File Structure
+1. **Exec in and run manually:**
+   ```bash
+   balena ssh <uuid> ros-node
+   ros2 run my_package my_node
+   ```
 
-```
-balena-cluster/
-├── docker-compose.yml           # Balena service definition
-├── Dockerfile.ros2              # ROS2 Jazzy ARM64 image
-├── fastdds_discovery_client.xml # Fast DDS client config
-├── fastdds_super_client.xml     # Fast DDS super client config
-├── entrypoint.sh                # Startup script
-└── README.md                    # This file
-```
+2. **Change the default command** in docker-compose.yml:
+   ```yaml
+   command: ros2 run my_package my_node
+   ```
+
+3. **Add your packages** to the Dockerfile and rebuild
+
+## Troubleshooting
+
+### "Connecting to Brain at: 127.0.0.1:11811"
+
+The `ROS_DISCOVERY_SERVER` environment variable isn't being passed. Check:
+1. Fleet variable is set correctly in Balena Dashboard
+2. Variable name is exactly `ROS_DISCOVERY_SERVER` (case sensitive)
+
+### Nodes not seeing each other
+
+1. Verify discovery server is running on desktop
+2. Check all devices can ping 172.32.1.250
+3. Ensure UDP port 11811 is open
+4. Verify all nodes have same `ROS_DOMAIN_ID`

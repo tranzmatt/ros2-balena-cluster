@@ -1,6 +1,6 @@
 # ROS2 Jazzy Discovery Server
 
-Fast DDS Discovery Server for x64 Linux with a monitor container for debugging.
+Fast DDS Discovery Server for x64 Linux with a monitor container for cluster verification.
 
 ## Quick Start
 
@@ -8,23 +8,24 @@ Fast DDS Discovery Server for x64 Linux with a monitor container for debugging.
 # Start the discovery server and monitor
 docker compose up -d
 
-# View logs
-docker compose logs -f discovery-server
-
-# Stop
-docker compose down
+# Check status
+docker compose ps
 ```
 
 ## Services
 
 ### discovery-server
-The main Fast DDS discovery server listening on port 11811 (UDP).
+The Fast DDS discovery server listening on port 11811 (UDP).
 
 ### monitor
-A helper container pre-configured to connect to the discovery server. Use it to verify the cluster is working:
+A ROS2 client pre-configured to connect to the discovery server. **This is your window into the cluster.**
+
+## Using the Monitor
+
+The monitor container is how you verify the cluster is working:
 
 ```bash
-# Exec into the monitor container
+# Exec into the monitor
 docker exec -it ros-monitor bash
 
 # List all nodes in the cluster
@@ -33,19 +34,31 @@ ros2 node list
 # List all topics
 ros2 topic list
 
-# Echo a topic
-ros2 topic echo /some_topic
+# Echo a topic from a Pi node
+ros2 topic echo /chatter
+
+# Publish a test message that Pi nodes can receive
+ros2 topic pub /test std_msgs/String "data: hello from desktop"
+
+# Run a listener to hear Pi talkers
+ros2 run demo_nodes_cpp listener
 ```
 
-## Native Installation (Alternative)
+## Verifying Cluster Connectivity
 
-If you prefer running natively without Docker:
+1. **Start a talker on any Pi:**
+   ```bash
+   balena ssh <uuid> ros-node
+   ros2 run demo_nodes_cpp talker
+   ```
 
-```bash
-sudo ./install.sh
-```
+2. **Listen from the desktop monitor:**
+   ```bash
+   docker exec -it ros-monitor bash
+   ros2 topic echo /chatter
+   ```
 
-This installs a systemd service.
+3. If you see messages, the cluster is working!
 
 ## Firewall
 
@@ -54,42 +67,26 @@ Ensure UDP port 11811 is accessible:
 ```bash
 # UFW
 sudo ufw allow 11811/udp
-
-# firewalld
-sudo firewall-cmd --add-port=11811/udp --permanent
-sudo firewall-cmd --reload
-```
-
-## Verifying Operation
-
-```bash
-# Check if server is running
-docker compose ps
-
-# Check UDP port is listening
-ss -uln | grep 11811
-
-# From a remote machine, test connectivity
-nc -zuv 172.32.1.250 11811
 ```
 
 ## Troubleshooting
 
-### Server won't start
-```bash
-# Check if port is already in use
-sudo lsof -i :11811
+### Monitor shows no nodes
 
-# View container logs
-docker compose logs discovery-server
+```bash
+# Reset the ROS2 daemon inside monitor
+docker exec -it ros-monitor bash
+ros2 daemon stop
+ros2 daemon start
+ros2 node list
 ```
 
-### Monitor can't see nodes
-```bash
-# Verify environment inside monitor
-docker exec -it ros-monitor env | grep ROS
+### Check server is actually running
 
-# Should show:
-# ROS_DISCOVERY_SERVER=127.0.0.1:11811
-# RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+```bash
+# View logs
+docker compose logs discovery-server
+
+# Check UDP port
+ss -uln | grep 11811
 ```

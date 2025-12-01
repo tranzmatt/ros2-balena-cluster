@@ -8,7 +8,7 @@ ENV LC_ALL=C.UTF-8
 ENV ROS_DISTRO=jazzy
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies
+# Install dependencies (including coreutils for sleep)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     software-properties-common \
     netcat-openbsd \
+    coreutils \
     locales \
     && locale-gen en_US.UTF-8 \
     && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 \
@@ -52,4 +53,5 @@ RUN chmod +x /opt/ros/entrypoint.sh
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
 ENTRYPOINT ["/opt/ros/entrypoint.sh"]
-CMD ["ros2", "run", "demo_nodes_cpp", "talker"]
+# Default: keep alive for exec access. Override in docker-compose if needed.
+CMD ["tail", "-f", "/dev/null"]

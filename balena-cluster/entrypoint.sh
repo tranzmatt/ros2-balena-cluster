@@ -46,5 +46,8 @@ if [ -f /ros2_ws/install/setup.bash ]; then
     source /ros2_ws/install/setup.bash
 fi
 
+echo "  Node ready. Executing: $@"
+echo "------------------------------------------------"
+
 # Execute the command passed to the container
 exec "$@"
