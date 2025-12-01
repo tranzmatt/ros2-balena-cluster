@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
     <profiles>
-        <!-- Discovery Client Profile -->
         <participant profile_name="discovery_client_participant" is_default_profile="true">
             <rtps>
-                <!-- Use Discovery Server instead of Simple Discovery -->
                 <builtin>
                     <discovery_config>
                         <discoveryProtocol>CLIENT</discoveryProtocol>
@@ -13,7 +11,6 @@
                                 <metatrafficUnicastLocatorList>
                                     <locator>
                                         <udpv4>
-                                            <!-- Discovery Server address - overridden by environment variable -->
                                             <address>172.32.1.250</address>
                                             <port>11811</port>
                                         </udpv4>
@@ -21,50 +18,9 @@
                                 </metatrafficUnicastLocatorList>
                             </RemoteServer>
                         </discoveryServersList>
-                        <!-- Lease duration settings -->
-                        <leaseDuration>
-                            <sec>20</sec>
-                            <nanosec>0</nanosec>
-                        </leaseDuration>
-                        <leaseAnnouncement>
-                            <sec>5</sec>
-                            <nanosec>0</nanosec>
-                        </leaseAnnouncement>
                     </discovery_config>
                 </builtin>
-                
-                <!-- Transport settings for network communication -->
-                <useBuiltinTransports>true</useBuiltinTransports>
-                
-                <!-- Participant name will be set at runtime -->
-                <name>ros2_participant</name>
             </rtps>
         </participant>
-
-        <!-- Data Writer QoS Profile -->
-        <data_writer profile_name="default_publisher" is_default_profile="true">
-            <qos>
-                <reliability>
-                    <kind>RELIABLE_RELIABILITY_QOS</kind>
-                </reliability>
-                <durability>
-                    <kind>TRANSIENT_LOCAL_DURABILITY_QOS</kind>
-                </durability>
-            </qos>
-            <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
-        </data_writer>
-
-        <!-- Data Reader QoS Profile -->
-        <data_reader profile_name="default_subscriber" is_default_profile="true">
-            <qos>
-                <reliability>
-                    <kind>RELIABLE_RELIABILITY_QOS</kind>
-                </reliability>
-                <durability>
-                    <kind>TRANSIENT_LOCAL_DURABILITY_QOS</kind>
-                </durability>
-            </qos>
-            <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
-        </data_reader>
     </profiles>
 </dds>
