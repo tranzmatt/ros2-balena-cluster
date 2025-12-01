@@ -6,7 +6,7 @@ RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y \
        ros-jazzy-fastrtps \
-           ros-jazzy-rmw-fastrtps-cpp \
+       ros-jazzy-rmw-fastrtps-cpp \
        ros-jazzy-fastrtps-cmake-module \
     && rm -rf /var/lib/apt/lists/*
 
