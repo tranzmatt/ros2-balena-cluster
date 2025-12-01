@@ -1,15 +1,28 @@
-# File: docker-compose.yml
-version: '2.1'
+version: "2.1"
 
 services:
   ros-talker:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
     privileged: true
     network_mode: host
     restart: always
     environment:
-      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-      # Placeholder. This will be overwritten by the Balena Dashboard.
-      - DISCOVERY_SERVER_IP=127.0.0.1 
-    # Start a talker node that publishes "Hello World"
-    command: ros2 run demo_nodes_cpp talker --ros-args --remap __node:=balena_talker
+      # Explicitly pass Balena fleet variables into container
+      - ROS_DISCOVERY_SERVER=${ROS_DISCOVERY_SERVER}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-0}
+      - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT:-false}
+      - NODE_NAME=${BALENA_DEVICE_NAME_AT_INIT:-ros2_node}
+    volumes:
+      - ros2-logs:/root/.ros/log
+      - shared-data:/shared
+    labels:
+      io.balena.features.dbus: "1"
+      io.balena.features.kernel-modules: "1"
+
+volumes:
+  ros2-logs:
+  shared-data:
