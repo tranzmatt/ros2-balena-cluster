@@ -41,13 +41,15 @@ else
     echo "------------------------------------------------"
 fi
 
-# Source workspace if it exists
-if [ -f /ros2_ws/install/setup.bash ]; then
-    source /ros2_ws/install/setup.bash
-fi
-
-echo "  Node ready. Executing: $@"
+echo "------------------------------------------------"
+echo "  Ready. Use 'balena ssh <uuid> ros-node' to run commands."
+echo "  Example: ros2 run demo_nodes_cpp talker"
 echo "------------------------------------------------"
 
-# Execute the command passed to the container
+# If no command provided, keep container alive
+if [ $# -eq 0 ]; then
+    exec sleep infinity
+fi
+
+# Execute the provided command
 exec "$@"

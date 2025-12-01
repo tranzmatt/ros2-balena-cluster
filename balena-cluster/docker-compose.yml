@@ -22,8 +22,7 @@ services:
     labels:
       io.balena.features.dbus: "1"
       io.balena.features.kernel-modules: "1"
-    # Keep container alive - exec in to run commands
-    command: ["tail", "-f", "/dev/null"]
+    # No command - entrypoint defaults to sleep infinity
 
 volumes:
   ros2-logs:
