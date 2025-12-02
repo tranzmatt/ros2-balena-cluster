@@ -1,14 +1,12 @@
 # ROS2 Jazzy for Raspberry Pi 5 (ARM64)
-# Base image uses Ubuntu 24.04 Noble which is required for Jazzy
 FROM balenalib/raspberrypi5-ubuntu:noble-run
 
-# Set environment variables
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV ROS_DISTRO=jazzy
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies (including coreutils for sleep)
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
@@ -37,8 +35,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-demo-nodes-py \
     && rm -rf /var/lib/apt/lists/*
 
-# Create workspace
-RUN mkdir -p /ros2_ws/src
 WORKDIR /ros2_ws
 
 # Copy Fast DDS configuration files
@@ -46,12 +42,10 @@ COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
 COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
 
 # Copy entrypoint script
-COPY entrypoint.sh /opt/ros/entrypoint.sh
-RUN chmod +x /opt/ros/entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Source ROS2 setup in bashrc
+# Source ROS2 in bashrc for interactive shells (balena ssh)
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
-ENTRYPOINT ["/opt/ros/entrypoint.sh"]
-# Default: keep alive for exec access. Override in docker-compose if needed.
-CMD ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["/entrypoint.sh"]

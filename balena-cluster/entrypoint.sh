@@ -8,6 +8,11 @@ source /opt/ros/jazzy/setup.bash
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 
+# Use device name as namespace to distinguish nodes
+if [ -n "$NODE_NAME" ]; then
+    export ROS_NAMESPACE="/$NODE_NAME"
+fi
+
 echo "------------------------------------------------"
 echo "  ROS 2 CLUSTER CLIENT"
 
@@ -41,9 +46,7 @@ else
     echo "------------------------------------------------"
 fi
 
-echo "------------------------------------------------"
-echo "  Ready. Use 'balena ssh <uuid> ros-node' to run commands."
-echo "  Example: ros2 run demo_nodes_cpp talker"
+echo "  Namespace: ${ROS_NAMESPACE:-/}"
 echo "------------------------------------------------"
 
 # If no command provided, keep container alive

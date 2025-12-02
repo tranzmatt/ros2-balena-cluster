@@ -15,6 +15,8 @@ RUN apt-get update \
 # Set Fast DDS as the default middleware
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
+COPY fastdds_client.xml /opt/ros/fastdds_client.xml
+
 # Source ROS automatically for interactive shells (docker exec)
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 

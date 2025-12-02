@@ -9,7 +9,6 @@ services:
     network_mode: host
     restart: always
     environment:
-      # Explicitly pass Balena fleet variables into container
       - ROS_DISCOVERY_SERVER=${ROS_DISCOVERY_SERVER}
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
