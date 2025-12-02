@@ -41,11 +41,12 @@ WORKDIR /ros2_ws
 COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
 COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
 
-# Copy entrypoint script
+# Copy entrypoint and shell setup scripts
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY ros2_env.sh /opt/ros/ros2_env.sh
+RUN chmod +x /entrypoint.sh /opt/ros/ros2_env.sh
 
-# Source ROS2 in bashrc for interactive shells (balena ssh)
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+# Source ROS2 AND our env setup in bashrc for interactive shells (balena ssh)
+RUN echo "source /opt/ros/ros2_env.sh" >> /root/.bashrc
 
 ENTRYPOINT ["/entrypoint.sh"]
