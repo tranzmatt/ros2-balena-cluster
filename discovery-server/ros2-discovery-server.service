@@ -5,28 +5,18 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=ros2
-Group=ros2
+User=root
 Environment="ROS_DISTRO=jazzy"
-Environment="DISCOVERY_SERVER_PORT=11811"
-Environment="DISCOVERY_SERVER_ID=0"
 
-# Source ROS2 and run discovery server
-ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && fastdds discovery --server-id 0 --udp-address 0.0.0.0 --udp-port 11811 --backup'
+# Use the actual binary - the fastdds wrapper is broken
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && fast-discovery-server -i 0 -p 11811'
 
 Restart=always
 RestartSec=5
 
-# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=ros2-discovery-server
-
-# Security hardening
-NoNewPrivileges=yes
-ProtectSystem=strict
-ProtectHome=yes
-PrivateTmp=yes
 
 [Install]
 WantedBy=multi-user.target
