@@ -41,12 +41,18 @@ WORKDIR /ros2_ws
 COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
 COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
 
+# Copy cluster demo scripts
+COPY cluster_talker.py /opt/ros/cluster_talker.py
+COPY cluster_listener.py /opt/ros/cluster_listener.py
+COPY cluster_status.py /opt/ros/cluster_status.py
+RUN chmod +x /opt/ros/cluster_*.py
+
 # Copy entrypoint and shell setup scripts
 COPY entrypoint.sh /entrypoint.sh
 COPY ros2_env.sh /opt/ros/ros2_env.sh
 RUN chmod +x /entrypoint.sh /opt/ros/ros2_env.sh
 
-# Source ROS2 AND our env setup in bashrc for interactive shells (balena ssh)
+# Source ROS2 in bashrc for interactive shells (balena ssh)
 RUN echo "source /opt/ros/ros2_env.sh" >> /root/.bashrc
 
 ENTRYPOINT ["/entrypoint.sh"]
