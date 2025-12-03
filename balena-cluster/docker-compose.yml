@@ -14,7 +14,6 @@ services:
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
       - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-0}
       - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT:-false}
-      - NODE_NAME=${BALENA_DEVICE_NAME_AT_INIT:-ros2_node}
       - NODE_ROLE=${NODE_ROLE:-idle}
     volumes:
       - ros2-logs:/root/.ros/log

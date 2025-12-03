@@ -4,8 +4,12 @@ set -e
 # Source shared environment setup
 source /opt/ros/ros2_env.sh
 
-# Use NODE_NAME for unique identification
-NODE_ID="${NODE_NAME:-$(hostname)}"
+# Get unique node ID from Balena device name (auto-injected by Balena)
+# Fall back to hostname if not in Balena
+NODE_ID="${BALENA_DEVICE_NAME_AT_INIT:-${HOSTNAME:-node}}"
+
+# Sanitize node ID - ROS2 node names can only have alphanumeric and underscores
+NODE_ID=$(echo "$NODE_ID" | tr -cd '[:alnum:]_')
 
 echo "------------------------------------------------"
 echo "  ROS 2 CLUSTER CLIENT"
@@ -15,7 +19,6 @@ echo "  Node Role: ${NODE_ROLE:-idle}"
 echo "------------------------------------------------"
 
 # Determine what to run based on NODE_ROLE
-# Each node gets a unique name: {device_name}_{role}
 case "${NODE_ROLE:-idle}" in
     talker)
         echo "Starting talker node as ${NODE_ID}_talker..."
