@@ -15,13 +15,13 @@ services:
       - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-0}
       - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT:-false}
       - NODE_NAME=${BALENA_DEVICE_NAME_AT_INIT:-ros2_node}
+      - NODE_ROLE=${NODE_ROLE:-idle}
     volumes:
       - ros2-logs:/root/.ros/log
       - shared-data:/shared
     labels:
       io.balena.features.dbus: "1"
       io.balena.features.kernel-modules: "1"
-    # No command - entrypoint defaults to sleep infinity
 
 volumes:
   ros2-logs:

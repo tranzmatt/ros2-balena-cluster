@@ -41,7 +41,7 @@ docker compose up -d
 ### 2. Deploy Balena Cluster Nodes
 
 Set fleet variables in Balena Dashboard:
-- `ROS_DISCOVERY_SERVER` = `172.32.1.250:11811`
+- `ROS_DISCOVERY_SERVER` = `192.168.100.10:11811`
 - `ROS_DOMAIN_ID` = `0`
 - `RMW_IMPLEMENTATION` = `rmw_fastrtps_cpp`
 - `ROS_LOCALHOST_ONLY` = `0`
@@ -110,7 +110,7 @@ The `ROS_DISCOVERY_SERVER` variable isn't being passed. Verify:
 ### Desktop monitor can't see Pi nodes
 
 1. Check discovery server is running: `docker compose ps`
-2. Verify Pi can reach desktop: `ping 172.32.1.250` from Pi
+2. Verify Pi can reach desktop: `ping 192.168.100.10` from Pi
 3. Check firewall allows UDP 11811
 
 ### ros2 node list is empty
