@@ -25,13 +25,18 @@ CAMERA_QOS = QoSProfile(
 )
 
 
-def find_usb_webcam():
+def find_usb_webcam(logger=None):
     """
     Find a USB webcam device, filtering out Pi's built-in ISP devices.
     Returns the /dev/videoN path or None if not found.
     """
+    def log(msg):
+        if logger:
+            logger.info(msg)
+    
     # Get list of video devices
     video_devices = sorted(glob.glob('/dev/video*'))
+    log(f'Found video devices: {video_devices}')
     
     for device in video_devices:
         # Skip high-numbered devices (Pi ISP uses video19-35)
@@ -54,36 +59,62 @@ def find_usb_webcam():
             )
             info = result.stdout.lower()
             
+            log(f'Checking {device}: {info[:100]}...')
+            
             # Skip if it's a metadata device or ISP
             if 'meta' in info or 'pispbe' in info or 'rpi' in info:
+                log(f'Skipping {device}: appears to be ISP/meta device')
                 continue
             
             # Check if device can actually capture video
-            if 'video capture' in info:
-                # Try to open it with OpenCV to verify it works
-                cap = cv2.VideoCapture(device)
-                if cap.isOpened():
-                    ret, _ = cap.read()
-                    cap.release()
-                    if ret:
-                        return device
-        except Exception:
+            if 'video capture' not in info:
+                log(f'Skipping {device}: not a video capture device')
+                continue
+                
+            # Try to open it with OpenCV to verify it works
+            # Use the device number with V4L2 backend explicitly
+            cap = cv2.VideoCapture(dev_num, cv2.CAP_V4L2)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                cap.release()
+                if ret and frame is not None:
+                    log(f'Success: {device} (index {dev_num}) is working')
+                    return dev_num  # Return the index, not path
+                else:
+                    log(f'{device}: opened but failed to read frame')
+            else:
+                log(f'{device}: failed to open with OpenCV')
+        except Exception as e:
+            log(f'{device}: error during detection: {e}')
             continue
     
     return None
 
 
-def find_webcam_by_index():
+def find_webcam_by_index(logger=None):
     """
     Fallback: Try opening video devices by index until one works.
     """
-    for i in range(4):  # Try video0 through video3
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            ret, frame = cap.read()
-            cap.release()
-            if ret and frame is not None:
-                return i
+    def log(msg):
+        if logger:
+            logger.info(msg)
+    
+    for i in range(10):  # Try video0 through video9
+        try:
+            log(f'Trying index {i}...')
+            cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                cap.release()
+                if ret and frame is not None:
+                    log(f'Success: index {i} is working')
+                    return i
+                else:
+                    log(f'Index {i}: opened but failed to read')
+            else:
+                log(f'Index {i}: failed to open')
+        except Exception as e:
+            log(f'Index {i}: error {e}')
     return None
 
 
@@ -111,23 +142,32 @@ class ClusterCamera(Node):
         self.capture_fps = self._parse_float_env('CAMERA_FPS', 1.0)
         self.jpeg_quality = self._parse_int_env('CAMERA_JPEG_QUALITY', 80)
         
+        # Allow forcing a specific device index via environment
+        forced_device = self._parse_int_env('CAMERA_DEVICE', -1)
+        
         # Try to find and open a webcam
         self.get_logger().info('Searching for USB webcam...')
         
-        # First try the smart detection
-        device = find_usb_webcam()
-        if device:
-            self.get_logger().info(f'Found webcam at {device}')
-            self.camera = cv2.VideoCapture(device)
-            self.camera_device = device
+        if forced_device >= 0:
+            # Use forced device index
+            self.get_logger().info(f'Using forced device index: {forced_device}')
+            self.camera = cv2.VideoCapture(forced_device, cv2.CAP_V4L2)
+            self.camera_device = f'/dev/video{forced_device}'
         else:
-            # Fallback to index-based detection
-            self.get_logger().info('Smart detection failed, trying index-based...')
-            idx = find_webcam_by_index()
-            if idx is not None:
-                self.get_logger().info(f'Found webcam at index {idx}')
-                self.camera = cv2.VideoCapture(idx)
-                self.camera_device = f'/dev/video{idx}'
+            # First try the smart detection
+            device_idx = find_usb_webcam(self.get_logger())
+            if device_idx is not None:
+                self.get_logger().info(f'Found webcam at index {device_idx}')
+                self.camera = cv2.VideoCapture(device_idx, cv2.CAP_V4L2)
+                self.camera_device = f'/dev/video{device_idx}'
+            else:
+                # Fallback to index-based detection
+                self.get_logger().info('Smart detection failed, trying index-based...')
+                device_idx = find_webcam_by_index(self.get_logger())
+                if device_idx is not None:
+                    self.get_logger().info(f'Found webcam at index {device_idx}')
+                    self.camera = cv2.VideoCapture(device_idx, cv2.CAP_V4L2)
+                    self.camera_device = f'/dev/video{device_idx}'
         
         if self.camera is None or not self.camera.isOpened():
             self.get_logger().error('No USB webcam found! Camera node will not publish.')

@@ -18,6 +18,7 @@ Set these in the Balena Dashboard under Fleet → Variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `CAMERA_DEVICE` | auto | Force specific video device index (0, 1, etc.) |
 | `CAMERA_WIDTH` | `640` | Capture width in pixels |
 | `CAMERA_HEIGHT` | `480` | Capture height in pixels |
 | `CAMERA_FPS` | `1.0` | Frames per second to publish |
@@ -183,7 +184,12 @@ ls -la /dev/video*
 v4l2-ctl -d /dev/video0 --info
 
 # Check if OpenCV can open it
-python3 -c "import cv2; c=cv2.VideoCapture(0); print('OK' if c.isOpened() else 'FAIL')"
+python3 -c "import cv2; c=cv2.VideoCapture(0, cv2.CAP_V4L2); print('OK' if c.isOpened() else 'FAIL')"
+```
+
+If auto-detection fails but the camera is present, force the device index:
+```
+CAMERA_DEVICE = 0
 ```
 
 ### Images not reaching viewer

@@ -18,6 +18,7 @@ services:
       # Node behavior
       - NODE_ROLE=${NODE_ROLE}
       # Camera settings (defaults handled in Python)
+      - CAMERA_DEVICE=${CAMERA_DEVICE}
       - CAMERA_WIDTH=${CAMERA_WIDTH}
       - CAMERA_HEIGHT=${CAMERA_HEIGHT}
       - CAMERA_FPS=${CAMERA_FPS}
