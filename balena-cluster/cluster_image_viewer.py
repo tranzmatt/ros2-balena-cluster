@@ -5,6 +5,7 @@ Optionally saves images to disk.
 """
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import CompressedImage
 import socket
 import os
@@ -14,12 +15,31 @@ import cv2
 import numpy as np
 
 
+# QoS profile matching the camera publisher - must be compatible
+CAMERA_QOS = QoSProfile(
+    reliability=QoSReliabilityPolicy.BEST_EFFORT,  # Match publisher
+    history=QoSHistoryPolicy.KEEP_LAST,
+    depth=5,  # Small buffer for processing bursts
+    durability=QoSDurabilityPolicy.VOLATILE,
+)
+
+
 class ClusterImageViewer(Node):
     def __init__(self):
-        node_id = os.environ.get('NODE_ID', socket.gethostname())
+        node_id = self._sanitize_node_id(os.environ.get('NODE_ID', socket.gethostname()))
         super().__init__(f'{node_id}_image_viewer')
         
         self.node_id = node_id
+
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        # Keep only alphanumeric and underscores
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        # ROS2 node names can't start with a number
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
         
         # Settings from environment (with safe parsing)
         self.save_images = self._parse_bool_env('SAVE_IMAGES', False)
@@ -36,12 +56,12 @@ class ClusterImageViewer(Node):
             os.makedirs(self.save_path, exist_ok=True)
             self.get_logger().info(f'Saving images to: {self.save_path}')
         
-        # Subscribe to the cluster camera topic
+        # Subscribe to the cluster camera topic with matching QoS
         self.subscription = self.create_subscription(
             CompressedImage,
             'cluster_camera/compressed',
             self.image_callback,
-            10
+            CAMERA_QOS
         )
         
         # Status timer

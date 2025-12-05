@@ -10,7 +10,7 @@ import os
 
 class ClusterTalker(Node):
     def __init__(self):
-        node_id = os.environ.get('NODE_ID', socket.gethostname())
+        node_id = self._sanitize_node_id(os.environ.get('NODE_ID', socket.gethostname()))
         super().__init__(f'{node_id}_talker')
         
         self.node_id = node_id
@@ -19,6 +19,14 @@ class ClusterTalker(Node):
         self.count = 0
         
         self.get_logger().info(f'Cluster talker started: {self.node_id}')
+
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
 
     def timer_callback(self):
         msg = String()

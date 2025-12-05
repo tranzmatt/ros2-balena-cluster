@@ -5,6 +5,7 @@ and publishes them as CompressedImage messages.
 """
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import CompressedImage
 import cv2
 import socket
@@ -12,6 +13,16 @@ import os
 import glob
 import re
 from datetime import datetime
+
+
+# QoS profile for camera streaming - "best effort, latest only"
+# This prevents buffer buildup when no subscribers or slow subscribers
+CAMERA_QOS = QoSProfile(
+    reliability=QoSReliabilityPolicy.BEST_EFFORT,  # Don't retry failed deliveries
+    history=QoSHistoryPolicy.KEEP_LAST,
+    depth=1,  # Only keep the latest frame
+    durability=QoSDurabilityPolicy.VOLATILE,  # Don't persist for late subscribers
+)
 
 
 def find_usb_webcam():
@@ -78,13 +89,21 @@ def find_webcam_by_index():
 
 class ClusterCamera(Node):
     def __init__(self):
-        node_id = os.environ.get('NODE_ID', socket.gethostname())
+        node_id = self._sanitize_node_id(os.environ.get('NODE_ID', socket.gethostname()))
         super().__init__(f'{node_id}_camera')
         
         self.node_id = node_id
         self.frame_count = 0
         self.camera = None
         self.camera_device = None
+
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
         
         # Camera settings from environment (with safe parsing)
         self.capture_width = self._parse_int_env('CAMERA_WIDTH', 640)
@@ -128,18 +147,19 @@ class ClusterCamera(Node):
         self.get_logger().info(f'Publishing at {self.capture_fps} FPS')
         
         # Create publisher for compressed images
-        # Topic: /cluster_camera or /<node_id>/camera/compressed
+        # Using BEST_EFFORT QoS - frames are dropped if no subscriber or slow subscriber
+        # This prevents memory buildup during long runs
         self.publisher = self.create_publisher(
             CompressedImage,
             'cluster_camera/compressed',
-            10
+            CAMERA_QOS
         )
         
         # Also publish to a node-specific topic
         self.local_publisher = self.create_publisher(
             CompressedImage,
             f'{node_id}/camera/compressed',
-            10
+            CAMERA_QOS
         )
         
         # Timer for periodic capture
