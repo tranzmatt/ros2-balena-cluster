@@ -127,14 +127,6 @@ class ClusterCamera(Node):
         self.frame_count = 0
         self.camera = None
         self.camera_device = None
-
-    @staticmethod
-    def _sanitize_node_id(name: str) -> str:
-        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
-        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
-        if sanitized and sanitized[0].isdigit():
-            sanitized = 'node_' + sanitized
-        return sanitized or 'unnamed_node'
         
         # Camera settings from environment (with safe parsing)
         self.capture_width = self._parse_int_env('CAMERA_WIDTH', 640)
@@ -208,10 +200,17 @@ class ClusterCamera(Node):
         
         self.get_logger().info(f'Cluster camera started: {self.node_id}')
 
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
+
     def _parse_int_env(self, name: str, default: int) -> int:
         """Safely parse integer from environment, handling unexpanded shell syntax."""
         val = os.environ.get(name, '')
-        # Handle unexpanded ${VAR:-default} syntax or empty
         if not val or val.startswith('${') or val.startswith('$'):
             return default
         try:
@@ -222,7 +221,6 @@ class ClusterCamera(Node):
     def _parse_float_env(self, name: str, default: float) -> float:
         """Safely parse float from environment, handling unexpanded shell syntax."""
         val = os.environ.get(name, '')
-        # Handle unexpanded ${VAR:-default} syntax or empty
         if not val or val.startswith('${') or val.startswith('$'):
             return default
         try:
