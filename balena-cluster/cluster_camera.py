@@ -86,11 +86,11 @@ class ClusterCamera(Node):
         self.camera = None
         self.camera_device = None
         
-        # Camera settings from environment
-        self.capture_width = int(os.environ.get('CAMERA_WIDTH', '640'))
-        self.capture_height = int(os.environ.get('CAMERA_HEIGHT', '480'))
-        self.capture_fps = float(os.environ.get('CAMERA_FPS', '1.0'))  # Default 1 FPS
-        self.jpeg_quality = int(os.environ.get('CAMERA_JPEG_QUALITY', '80'))
+        # Camera settings from environment (with safe parsing)
+        self.capture_width = self._parse_int_env('CAMERA_WIDTH', 640)
+        self.capture_height = self._parse_int_env('CAMERA_HEIGHT', 480)
+        self.capture_fps = self._parse_float_env('CAMERA_FPS', 1.0)
+        self.jpeg_quality = self._parse_int_env('CAMERA_JPEG_QUALITY', 80)
         
         # Try to find and open a webcam
         self.get_logger().info('Searching for USB webcam...')
@@ -148,6 +148,28 @@ class ClusterCamera(Node):
         
         self.get_logger().info(f'Cluster camera started: {self.node_id}')
 
+    def _parse_int_env(self, name: str, default: int) -> int:
+        """Safely parse integer from environment, handling unexpanded shell syntax."""
+        val = os.environ.get(name, '')
+        # Handle unexpanded ${VAR:-default} syntax or empty
+        if not val or val.startswith('${') or val.startswith('$'):
+            return default
+        try:
+            return int(val)
+        except ValueError:
+            return default
+
+    def _parse_float_env(self, name: str, default: float) -> float:
+        """Safely parse float from environment, handling unexpanded shell syntax."""
+        val = os.environ.get(name, '')
+        # Handle unexpanded ${VAR:-default} syntax or empty
+        if not val or val.startswith('${') or val.startswith('$'):
+            return default
+        try:
+            return float(val)
+        except ValueError:
+            return default
+
     def capture_callback(self):
         if self.camera is None:
             return
@@ -198,17 +220,26 @@ def main():
     if node.camera is None:
         node.get_logger().error('Exiting - no camera available')
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
         return
     
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    except ExternalShutdownException:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':
+    from rclpy.executors import ExternalShutdownException
     main()

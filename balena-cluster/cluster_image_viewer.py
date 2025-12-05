@@ -21,10 +21,10 @@ class ClusterImageViewer(Node):
         
         self.node_id = node_id
         
-        # Settings from environment
-        self.save_images = os.environ.get('SAVE_IMAGES', 'false').lower() == 'true'
-        self.save_path = os.environ.get('SAVE_PATH', '/shared/images')
-        self.save_interval = int(os.environ.get('SAVE_INTERVAL', '10'))  # Save every N frames
+        # Settings from environment (with safe parsing)
+        self.save_images = self._parse_bool_env('SAVE_IMAGES', False)
+        self.save_path = self._parse_str_env('SAVE_PATH', '/shared/images')
+        self.save_interval = self._parse_int_env('SAVE_INTERVAL', 10)
         
         # Stats tracking
         self.sources = {}  # frame_id -> stats
@@ -49,6 +49,30 @@ class ClusterImageViewer(Node):
         
         self.get_logger().info(f'Cluster image viewer started: {self.node_id}')
         self.get_logger().info('Waiting for images on /cluster_camera/compressed...')
+
+    def _parse_int_env(self, name: str, default: int) -> int:
+        """Safely parse integer from environment, handling unexpanded shell syntax."""
+        val = os.environ.get(name, '')
+        if not val or val.startswith('${') or val.startswith('$'):
+            return default
+        try:
+            return int(val)
+        except ValueError:
+            return default
+
+    def _parse_bool_env(self, name: str, default: bool) -> bool:
+        """Safely parse boolean from environment."""
+        val = os.environ.get(name, '')
+        if not val or val.startswith('${') or val.startswith('$'):
+            return default
+        return val.lower() in ('true', '1', 'yes', 'on')
+
+    def _parse_str_env(self, name: str, default: str) -> str:
+        """Safely parse string from environment, handling unexpanded shell syntax."""
+        val = os.environ.get(name, '')
+        if not val or val.startswith('${') or val.startswith('$'):
+            return default
+        return val
 
     def image_callback(self, msg: CompressedImage):
         source = msg.header.frame_id or 'unknown'
@@ -140,10 +164,16 @@ def main():
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    except ExternalShutdownException:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':
+    from rclpy.executors import ExternalShutdownException
     main()
