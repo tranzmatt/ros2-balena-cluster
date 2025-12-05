@@ -3,6 +3,7 @@
 A complete ROS2 Jazzy cluster setup with:
 - **Discovery Server** running on x64 Linux (your desktop)
 - **Cluster Nodes** on Raspberry Pi 5 managed by Balena
+- **USB Webcam Support** for image streaming across the cluster
 
 ## Architecture
 
@@ -22,11 +23,11 @@ A complete ROS2 Jazzy cluster setup with:
                               │
           ┌───────────────────┼───────────────────┐
           │                   │                   │
-   ┌──────┴──────┐     ┌──────┴──────┐     ┌──────┴──────┐
-   │   Pi 5 #1   │     │   Pi 5 #2   │     │   Pi 5 #N   │
-   │  (Balena)   │     │  (Balena)   │     │  (Balena)   │
-   │  ROS2 Node  │     │  ROS2 Node  │     │  ROS2 Node  │
-   └─────────────┘     └─────────────┘     └─────────────┘
+   ┌──────┴───────┐     ┌──────┴──────┐     ┌──────┴──────┐
+   │   Pi 5 #1    │     │   Pi 5 #2   │     │   Pi 5 #N   │
+   │  (Balena)    │     │  (Balena)   │     │  (Balena)   │
+   │ ROS2 Camera  │     │ ROS2 Camera │     │  ROS2 Node  │
+   └──────────────┘     └─────────────┘     └─────────────┘
 ```
 
 ## Quick Start
@@ -79,6 +80,59 @@ balena ssh <other-device-uuid> ros-node
 ros2 run demo_nodes_cpp listener
 ```
 
+## Camera Streaming
+
+### Setting Up Camera Nodes
+
+For Pi devices with USB webcams attached:
+
+1. Set the device variable in Balena Dashboard:
+   ```
+   NODE_ROLE = camera
+   ```
+
+2. Optionally configure camera settings (fleet or device level):
+   ```
+   CAMERA_WIDTH = 640
+   CAMERA_HEIGHT = 480
+   CAMERA_FPS = 1.0
+   CAMERA_JPEG_QUALITY = 80
+   ```
+
+### Viewing Camera Streams
+
+**From the desktop monitor:**
+```bash
+docker exec -it ros-monitor bash
+
+# List camera topics
+ros2 topic list | grep camera
+
+# Check frame rate
+ros2 topic hz /cluster_camera/compressed
+
+# View image headers
+ros2 topic echo /cluster_camera/compressed --field header
+
+# Run the image viewer
+python3 /opt/ros/cluster_image_viewer.py
+```
+
+**Save images from all cameras:**
+```bash
+docker exec -it ros-monitor bash
+SAVE_IMAGES=true SAVE_PATH=/tmp/images python3 /opt/ros/cluster_image_viewer.py
+```
+
+### Camera NODE_ROLE Options
+
+| Role | Description |
+|------|-------------|
+| `camera` | Publish webcam images only |
+| `camera_viewer` | Receive and track images |
+| `camera_talker` | Camera + text messages |
+| `full` | Camera + talker + listener |
+
 ## Repository Structure
 
 ```
@@ -88,6 +142,7 @@ ros2-cluster/
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   ├── entrypoint.sh
+│   ├── cluster_image_viewer.py
 │   └── README.md
 └── balena-cluster/           # Raspberry Pi 5 Balena nodes
     ├── Dockerfile.ros2
@@ -95,6 +150,11 @@ ros2-cluster/
     ├── entrypoint.sh
     ├── fastdds_discovery_client.xml
     ├── fastdds_super_client.xml
+    ├── cluster_talker.py
+    ├── cluster_listener.py
+    ├── cluster_status.py
+    ├── cluster_camera.py
+    ├── cluster_image_viewer.py
     └── README.md
 ```
 
@@ -121,6 +181,25 @@ ros2 daemon stop
 ros2 daemon start
 ros2 node list
 ```
+
+### Camera not detected
+
+```bash
+# On the Pi via balena ssh
+balena ssh <uuid> ros-node
+
+# List video devices
+v4l2-ctl --list-devices
+
+# Test OpenCV capture
+python3 -c "import cv2; c=cv2.VideoCapture(0); print('OK' if c.isOpened() else 'FAIL')"
+```
+
+### No images reaching viewer
+
+1. Check camera is publishing: `ros2 topic hz /cluster_camera/compressed`
+2. Verify discovery server connectivity
+3. Check camera node logs in Balena dashboard
 
 ## License
 

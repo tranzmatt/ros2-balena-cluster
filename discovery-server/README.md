@@ -44,6 +44,26 @@ ros2 topic pub /test std_msgs/String "data: hello from desktop"
 ros2 run demo_nodes_cpp listener
 ```
 
+## Camera Streams
+
+View images from the cluster:
+
+```bash
+docker exec -it ros-monitor bash
+
+# List camera topics
+ros2 topic list | grep camera
+
+# Check image rate
+ros2 topic hz /cluster_camera/compressed
+
+# Run the image viewer (tracks all camera sources)
+python3 /opt/ros/cluster_image_viewer.py
+
+# Save images to disk
+SAVE_IMAGES=true SAVE_PATH=/tmp/images python3 /opt/ros/cluster_image_viewer.py
+```
+
 ## Verifying Cluster Connectivity
 
 1. **Start a talker on any Pi:**

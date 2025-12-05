@@ -1,4 +1,4 @@
-# ROS2 Jazzy for Raspberry Pi 5 (ARM64)
+# ROS2 Jazzy for Raspberry Pi 5 (ARM64) with Camera Support
 FROM balenalib/raspberrypi5-ubuntu:noble-run
 
 ENV LANG=C.UTF-8
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     coreutils \
     locales \
+    v4l-utils \
     && locale-gen en_US.UTF-8 \
     && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
@@ -26,13 +27,23 @@ ENV LANG=en_US.UTF-8
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
-# Install ROS2 Jazzy base, Fast DDS, and demo nodes
+# Install ROS2 Jazzy base, Fast DDS, demo nodes, and image transport
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-ros-base \
     ros-jazzy-rmw-fastrtps-cpp \
     ros-jazzy-fastrtps \
     ros-jazzy-demo-nodes-cpp \
     ros-jazzy-demo-nodes-py \
+    ros-jazzy-sensor-msgs \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-image-transport \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install camera/video dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    v4l-utils \
+    python3-opencv \
+    libopencv-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
@@ -45,6 +56,11 @@ COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
 COPY cluster_talker.py /opt/ros/cluster_talker.py
 COPY cluster_listener.py /opt/ros/cluster_listener.py
 COPY cluster_status.py /opt/ros/cluster_status.py
+
+# Copy camera scripts
+COPY cluster_camera.py /opt/ros/cluster_camera.py
+COPY cluster_image_viewer.py /opt/ros/cluster_image_viewer.py
+
 RUN chmod +x /opt/ros/cluster_*.py
 
 # Copy entrypoint and shell setup scripts

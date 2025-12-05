@@ -1,7 +1,7 @@
 # File: Dockerfile
 FROM ros:jazzy-ros-base
 
-# Install Fast DDS middleware and the CLI tools required to run the server
+# Install Fast DDS middleware, CLI tools, and image support
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y \
@@ -10,12 +10,20 @@ RUN apt-get update \
        ros-jazzy-fastrtps-cmake-module \
        ros-jazzy-demo-nodes-cpp \
        ros-jazzy-demo-nodes-py \
+       ros-jazzy-sensor-msgs \
+       ros-jazzy-cv-bridge \
+       ros-jazzy-image-transport \
+       python3-opencv \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Fast DDS as the default middleware
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 COPY fastdds_client.xml /opt/ros/fastdds_client.xml
+
+# Copy cluster scripts (for the monitor to use)
+COPY cluster_image_viewer.py /opt/ros/cluster_image_viewer.py
+RUN chmod +x /opt/ros/cluster_image_viewer.py
 
 # Source ROS automatically for interactive shells (docker exec)
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
