@@ -11,7 +11,7 @@ Set these in the Balena Dashboard under Fleet → Variables:
 | `ROS_DISCOVERY_SERVER` | `172.32.1.250:11811` | Discovery server address |
 | `ROS_DOMAIN_ID` | `0` | ROS2 domain ID |
 | `RMW_IMPLEMENTATION` | `rmw_fastrtps_cpp` | DDS middleware |
-| `ROS_LOCALHOST_ONLY` | `0` | Must be 0 for networking |
+| `ROS_AUTOMATIC_DISCOVERY_RANGE` | `subnet` | search subnet for peers |
 | `NODE_ROLE` | `idle` | Default role (see below) |
 
 ### Camera Variables (Optional)
