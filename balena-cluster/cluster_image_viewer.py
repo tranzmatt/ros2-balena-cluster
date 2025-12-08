@@ -15,9 +15,9 @@ import cv2
 import numpy as np
 
 
-# QoS profile matching the camera publisher - must be compatible
+# QoS profile matching the camera publisher
 CAMERA_QOS = QoSProfile(
-    reliability=QoSReliabilityPolicy.BEST_EFFORT,  # Match publisher
+    reliability=QoSReliabilityPolicy.RELIABLE,
     history=QoSHistoryPolicy.KEEP_LAST,
     depth=5,  # Small buffer for processing bursts
     durability=QoSDurabilityPolicy.VOLATILE,
@@ -30,16 +30,6 @@ class ClusterImageViewer(Node):
         super().__init__(f'{node_id}_image_viewer')
         
         self.node_id = node_id
-
-    @staticmethod
-    def _sanitize_node_id(name: str) -> str:
-        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
-        # Keep only alphanumeric and underscores
-        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
-        # ROS2 node names can't start with a number
-        if sanitized and sanitized[0].isdigit():
-            sanitized = 'node_' + sanitized
-        return sanitized or 'unnamed_node'
         
         # Settings from environment (with safe parsing)
         self.save_images = self._parse_bool_env('SAVE_IMAGES', False)
@@ -57,9 +47,10 @@ class ClusterImageViewer(Node):
             self.get_logger().info(f'Saving images to: {self.save_path}')
         
         # Subscribe to the cluster camera topic with matching QoS
+        # Use absolute topic name to avoid namespace issues
         self.subscription = self.create_subscription(
             CompressedImage,
-            'cluster_camera/compressed',
+            '/cluster_camera/compressed',
             self.image_callback,
             CAMERA_QOS
         )
@@ -69,6 +60,14 @@ class ClusterImageViewer(Node):
         
         self.get_logger().info(f'Cluster image viewer started: {self.node_id}')
         self.get_logger().info('Waiting for images on /cluster_camera/compressed...')
+
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
 
     def _parse_int_env(self, name: str, default: int) -> int:
         """Safely parse integer from environment, handling unexpanded shell syntax."""

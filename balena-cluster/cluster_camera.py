@@ -15,10 +15,11 @@ import re
 from datetime import datetime
 
 
-# QoS profile for camera streaming - "best effort, latest only"
-# This prevents buffer buildup when no subscribers or slow subscribers
+# QoS profile for camera streaming - RELIABLE for fragmented UDP delivery
+# Large images (80KB+) get fragmented into many UDP packets; BEST_EFFORT drops
+# the entire message if any fragment is lost. RELIABLE retransmits lost fragments.
 CAMERA_QOS = QoSProfile(
-    reliability=QoSReliabilityPolicy.BEST_EFFORT,  # Don't retry failed deliveries
+    reliability=QoSReliabilityPolicy.RELIABLE,
     history=QoSHistoryPolicy.KEEP_LAST,
     depth=1,  # Only keep the latest frame
     durability=QoSDurabilityPolicy.VOLATILE,  # Don't persist for late subscribers
@@ -181,16 +182,17 @@ class ClusterCamera(Node):
         # Create publisher for compressed images
         # Using BEST_EFFORT QoS - frames are dropped if no subscriber or slow subscriber
         # This prevents memory buildup during long runs
+        # Use absolute topic name to avoid namespace issues
         self.publisher = self.create_publisher(
             CompressedImage,
-            'cluster_camera/compressed',
+            '/cluster_camera/compressed',
             CAMERA_QOS
         )
         
         # Also publish to a node-specific topic
         self.local_publisher = self.create_publisher(
             CompressedImage,
-            f'{node_id}/camera/compressed',
+            f'/{node_id}/camera/compressed',
             CAMERA_QOS
         )
         
