@@ -1,5 +1,4 @@
 # File: docker-compose.yml
-version: '3.8'
 
 services:
   # The "Brain" of the network
@@ -24,4 +23,5 @@ services:
     environment:
       - ROS_DISCOVERY_SERVER=127.0.0.1:11811
       - FASTRTPS_DEFAULT_PROFILES_FILE=/opt/ros/fastdds_client.xml
+      - ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
     command: sleep infinity

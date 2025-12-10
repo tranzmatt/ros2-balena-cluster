@@ -9,12 +9,24 @@ services:
     network_mode: host
     restart: always
     environment:
+      # ROS2 Discovery
       - ROS_DISCOVERY_SERVER=${ROS_DISCOVERY_SERVER}
-      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
-      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
-      - ROS_LOCALHOST_ONLY=${ROS_LOCALHOST_ONLY:-0}
-      - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT:-false}
-      - NODE_ROLE=${NODE_ROLE:-idle}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
+      - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
+      - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT}
+      # Node behavior
+      - NODE_ROLE=${NODE_ROLE}
+      # Camera settings (defaults handled in Python)
+      - CAMERA_DEVICE=${CAMERA_DEVICE}
+      - CAMERA_WIDTH=${CAMERA_WIDTH}
+      - CAMERA_HEIGHT=${CAMERA_HEIGHT}
+      - CAMERA_FPS=${CAMERA_FPS}
+      - CAMERA_JPEG_QUALITY=${CAMERA_JPEG_QUALITY}
+      # Image viewer settings
+      - SAVE_IMAGES=${SAVE_IMAGES}
+      - SAVE_PATH=${SAVE_PATH}
+      - SAVE_INTERVAL=${SAVE_INTERVAL}
     volumes:
       - ros2-logs:/root/.ros/log
       - shared-data:/shared

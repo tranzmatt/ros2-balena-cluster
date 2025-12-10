@@ -19,6 +19,14 @@ echo "  Node ID: ${NODE_ID}"
 echo "  Node Role: ${NODE_ROLE:-idle}"
 echo "------------------------------------------------"
 
+# Check for webcam if camera role
+if [[ "${NODE_ROLE}" == *"camera"* ]]; then
+    echo "Checking for USB webcam..."
+    if command -v v4l2-ctl &> /dev/null; then
+        v4l2-ctl --list-devices 2>/dev/null || echo "No video devices found"
+    fi
+fi
+
 # Determine what to run based on NODE_ROLE
 case "${NODE_ROLE:-idle}" in
     talker)
@@ -38,6 +46,25 @@ case "${NODE_ROLE:-idle}" in
         python3 /opt/ros/cluster_talker.py &
         exec python3 /opt/ros/cluster_listener.py
         ;;
+    camera)
+        echo "Starting cluster camera publisher..."
+        exec python3 /opt/ros/cluster_camera.py
+        ;;
+    camera_viewer)
+        echo "Starting cluster image viewer..."
+        exec python3 /opt/ros/cluster_image_viewer.py
+        ;;
+    camera_talker)
+        echo "Starting camera + talker..."
+        python3 /opt/ros/cluster_camera.py &
+        exec python3 /opt/ros/cluster_talker.py
+        ;;
+    full)
+        echo "Starting camera + talker + listener..."
+        python3 /opt/ros/cluster_camera.py &
+        python3 /opt/ros/cluster_talker.py &
+        exec python3 /opt/ros/cluster_listener.py
+        ;;
     demo_talker)
         echo "Starting demo talker..."
         exec ros2 run demo_nodes_cpp talker --ros-args --remap __node:=${NODE_ID}_talker
@@ -50,9 +77,15 @@ case "${NODE_ROLE:-idle}" in
         echo "Idle mode - use 'balena ssh <uuid> ros-node' to run commands"
         echo ""
         echo "Available commands:"
-        echo "  python3 /opt/ros/cluster_talker.py   - Cluster-aware talker"
-        echo "  python3 /opt/ros/cluster_listener.py - Cluster-aware listener"
-        echo "  python3 /opt/ros/cluster_status.py   - Cluster status monitor"
+        echo "  python3 /opt/ros/cluster_talker.py    - Cluster-aware talker"
+        echo "  python3 /opt/ros/cluster_listener.py  - Cluster-aware listener"
+        echo "  python3 /opt/ros/cluster_status.py    - Cluster status monitor"
+        echo "  python3 /opt/ros/cluster_camera.py    - USB webcam publisher"
+        echo "  python3 /opt/ros/cluster_image_viewer.py - Image receiver/viewer"
+        echo ""
+        echo "Camera troubleshooting:"
+        echo "  v4l2-ctl --list-devices              - List video devices"
+        echo "  v4l2-ctl -d /dev/video0 --all        - Show device capabilities"
         echo ""
         exec sleep infinity
         ;;

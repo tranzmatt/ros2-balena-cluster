@@ -12,7 +12,7 @@ from collections import defaultdict
 
 class ClusterStatus(Node):
     def __init__(self):
-        node_id = os.environ.get('NODE_ID', socket.gethostname())
+        node_id = self._sanitize_node_id(os.environ.get('NODE_ID', socket.gethostname()))
         super().__init__(f'{node_id}_status')
         
         self.node_id = node_id
@@ -32,6 +32,14 @@ class ClusterStatus(Node):
         
         self.get_logger().info(f'Cluster status monitor started: {self.node_id}')
         self.get_logger().info('Waiting for messages on /cluster_chat...')
+
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node ID for ROS2 - alphanumeric/underscore, can't start with number."""
+        sanitized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = 'node_' + sanitized
+        return sanitized or 'unnamed_node'
 
     def message_callback(self, msg):
         if msg.data.startswith('['):
@@ -64,9 +72,16 @@ def main():
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    except ExternalShutdownException:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
+
 
 if __name__ == '__main__':
+    from rclpy.executors import ExternalShutdownException
     main()
