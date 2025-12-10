@@ -1,0 +1,77 @@
+# ROS2 Jazzy Standalone Node for Raspberry Pi 5 (ARM64) or x64
+# Works on any Linux system with Docker
+FROM ubuntu:24.04
+
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV ROS_DISTRO=jazzy
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gnupg2 \
+    lsb-release \
+    ca-certificates \
+    software-properties-common \
+    netcat-openbsd \
+    coreutils \
+    locales \
+    v4l-utils \
+    iproute2 \
+    iputils-ping \
+    && locale-gen en_US.UTF-8 \
+    && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=en_US.UTF-8
+
+# Add ROS2 apt repository
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+# Install ROS2 Jazzy base, Fast DDS, demo nodes, and image transport
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-ros-base \
+    ros-jazzy-rmw-fastrtps-cpp \
+    ros-jazzy-fastrtps \
+    ros-jazzy-demo-nodes-cpp \
+    ros-jazzy-demo-nodes-py \
+    ros-jazzy-sensor-msgs \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-image-transport \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install camera/video dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    v4l-utils \
+    python3-opencv \
+    libopencv-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /ros2_ws
+
+# Copy Fast DDS configuration files
+COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
+COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
+
+# Copy cluster demo scripts
+COPY cluster_talker.py /opt/ros/cluster_talker.py
+COPY cluster_listener.py /opt/ros/cluster_listener.py
+COPY cluster_status.py /opt/ros/cluster_status.py
+
+# Copy camera scripts
+COPY cluster_camera.py /opt/ros/cluster_camera.py
+COPY cluster_image_viewer.py /opt/ros/cluster_image_viewer.py
+
+RUN chmod +x /opt/ros/cluster_*.py
+
+# Copy entrypoint and shell setup scripts
+COPY entrypoint.sh /entrypoint.sh
+COPY ros2_env.sh /opt/ros/ros2_env.sh
+RUN chmod +x /entrypoint.sh /opt/ros/ros2_env.sh
+
+# Source ROS2 in bashrc for interactive shells (docker exec)
+RUN echo "source /opt/ros/ros2_env.sh" >> /root/.bashrc
+
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,44 @@
+version: "2.1"
+
+services:
+  ros-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    container_name: ros-node
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      # ROS2 Discovery - set in .env file
+      - ROS_DISCOVERY_SERVER=${ROS_DISCOVERY_SERVER:-172.32.1.250:11811}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}
+      - ROS_SUPER_CLIENT=${ROS_SUPER_CLIENT:-false}
+      # Node identity and behavior
+      - NODE_ID=${NODE_ID:-}
+      - NODE_ROLE=${NODE_ROLE:-idle}
+      # Camera settings
+      - CAMERA_DEVICE=${CAMERA_DEVICE:-}
+      - CAMERA_WIDTH=${CAMERA_WIDTH:-640}
+      - CAMERA_HEIGHT=${CAMERA_HEIGHT:-480}
+      - CAMERA_FPS=${CAMERA_FPS:-1.0}
+      - CAMERA_JPEG_QUALITY=${CAMERA_JPEG_QUALITY:-80}
+      # Image viewer settings
+      - SAVE_IMAGES=${SAVE_IMAGES:-false}
+      - SAVE_PATH=${SAVE_PATH:-/shared/images}
+      - SAVE_INTERVAL=${SAVE_INTERVAL:-10}
+    volumes:
+      - ros2-logs:/root/.ros/log
+      - shared-data:/shared
+      # Mount host video devices for camera access
+      - /dev:/dev
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+
+volumes:
+  ros2-logs:
+  shared-data:
