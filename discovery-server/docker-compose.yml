@@ -10,7 +10,7 @@ services:
     network_mode: host
     restart: unless-stopped
     # Use the actual binary - the fastdds wrapper is broken
-    command: /opt/ros/jazzy/bin/fast-discovery-server -i 0 -p 11811
+    command: /opt/ros/jazzy/bin/fast-discovery-server -i 1 -p 11811
 
   # Optional: A local monitor to verify the server sees traffic
   # specific to this machine
@@ -21,7 +21,7 @@ services:
     # This environment variable tells this node to talk to the server 
     # defined above (localhost relative to this machine)
     environment:
-      - ROS_DISCOVERY_SERVER=127.0.0.1:11811
+      - ROS_DISCOVERY_SERVER=;127.0.0.1:11811
       - FASTRTPS_DEFAULT_PROFILES_FILE=/opt/ros/fastdds_client.xml
       - ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
     command: sleep infinity
