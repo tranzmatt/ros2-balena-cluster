@@ -19,8 +19,6 @@ RUN apt-get update \
 # Set Fast DDS as the default middleware
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
-COPY fastdds_client.xml /opt/ros/fastdds_client.xml
-
 # Copy cluster scripts (for the monitor to use)
 COPY cluster_image_viewer.py /opt/ros/cluster_image_viewer.py
 RUN chmod +x /opt/ros/cluster_image_viewer.py
