@@ -52,8 +52,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /ros2_ws
 
 # Copy Fast DDS configuration files
-COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
-COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
+#COPY fastdds_discovery_client.xml /opt/ros/fastdds_config.xml
+#COPY fastdds_super_client.xml /opt/ros/fastdds_super_client.xml
 
 # Copy cluster demo scripts
 COPY cluster_talker.py /opt/ros/cluster_talker.py
